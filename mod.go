@@ -11,6 +11,8 @@ const (
 	LEN_SAMPLE_NAME = 22
 	NUM_SAMPLES     = 31
 	LEN_SEQUENCE    = 128
+	LEN_PATTERN     = 64
+	NUM_CHANNELS    = 4
 )
 
 type Sample struct {
@@ -23,10 +25,13 @@ type Sample struct {
 	Data        []byte
 }
 
-type Pattern struct {
-	// TODO Change Pattern stuct to store parsed Note data
-	Data []byte
+type Note struct {
+	Sample uint8
+	Period uint16
+	Effect uint16
 }
+
+type Pattern [LEN_PATTERN][NUM_CHANNELS]Note
 
 type Mod struct {
 	Name     []byte
@@ -217,15 +222,28 @@ func writeSampleHead(w io.Writer, s Sample) error {
 }
 
 func readPattern(r io.Reader) (Pattern, error) {
-	data, err := readBytes(r, 1024)
-	if err != nil {
-		return Pattern{}, err
+	var p Pattern
+	for i := 0; i < LEN_PATTERN; i++ {
+		for j := 0; j < NUM_CHANNELS; j++ {
+			data, err := readBytes(r, 4)
+			if err != nil {
+				return p, err
+			}
+			p[i][j] = readNote(data)
+		}
 	}
-	return Pattern{data}, nil
+	return p, nil
 }
 
 func writePattern(w io.Writer, p Pattern) error {
-	return writeBytes(w, p.Data)
+	for i := 0; i < LEN_PATTERN; i++ {
+		for j := 0; j < NUM_CHANNELS; j++ {
+			if err := writeBytes(w, writeNote(p[i][j])); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func readName(r io.Reader, n int) ([]byte, error) {
@@ -305,6 +323,23 @@ func writeBytes(w io.Writer, p []byte) error {
 		return errors.New("bad write")
 	}
 	return nil
+}
+
+func readNote(d []byte) Note {
+	return Note{
+		Sample: (d[0] & 0xF0) | ((d[2] & 0xF0) >> 4),
+		Period: (uint16(d[0]&0x0F) << 8) | uint16(d[1]),
+		Effect: (uint16(d[2]&0x0F) << 8) | uint16(d[3]),
+	}
+}
+
+func writeNote(n Note) []byte {
+	d := make([]byte, 4)
+	d[0] = (n.Sample & 0xF0) | byte((n.Period>>8)&0x0F)
+	d[1] = byte(n.Period & 0xFF)
+	d[2] = ((n.Sample & 0x0F) << 4) | byte((n.Effect>>8)&0x0F)
+	d[3] = byte(n.Effect & 0xFF)
+	return d
 }
 
 func (m *Mod) validate() error {

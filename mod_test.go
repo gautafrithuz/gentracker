@@ -92,3 +92,22 @@ func TestWrite(t *testing.T) {
 		t.Error("Write not binary equal!")
 	}
 }
+
+func TestNote(t *testing.T) {
+	expected := []byte{0x0F, 0x96, 0xA5, 0xC3}
+	n := readNote(expected)
+	if n.Sample != 0x0A {
+		t.Errorf("Incorrect Note Sample")
+	}
+	if n.Period != 0xF96 {
+		t.Errorf("Incorrect Note Period")
+	}
+	if n.Effect != 0x5C3 {
+		t.Errorf("Incorrect Note Effect")
+	}
+
+	actual := writeNote(n)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Note read/write")
+	}
+}
