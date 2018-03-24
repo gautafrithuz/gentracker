@@ -1,4 +1,4 @@
-package amiga
+package gentracker
 
 import (
 	"encoding/binary"
