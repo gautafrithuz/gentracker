@@ -43,7 +43,6 @@ func (m *Mod) Read(r io.Reader) error {
 	}
 	m.Name = name
 
-	// TODO read correct number of samples based on initials
 	for i := 0; i < NUM_SAMPLES; i++ {
 		sample, err := readSampleHead(r)
 		if err != nil {
@@ -56,20 +55,17 @@ func (m *Mod) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	// TODO check range [1,128]
 	m.Len = len
 
 	_, err = readByte(r)
 	if err != nil {
 		return err
 	}
-	// TODO check =127
 
 	seq, err := readBytes(r, LEN_SEQUENCE)
 	if err != nil {
 		return err
 	}
-	// TODO check values [0,63]
 	m.Sequence = seq
 
 	mk, err := readBytes(r, 4)
@@ -104,31 +100,34 @@ func (m *Mod) Read(r io.Reader) error {
 		}
 	}
 
+	if err := m.validate(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (m *Mod) Write(w io.Writer) error {
+	if err := m.validate(); err != nil {
+		return err
+	}
+
 	if err := writeName(w, m.Name, LEN_NAME); err != nil {
 		return err
 	}
 
-	// TODO write correct number of samples based on initials
 	for i := 0; i < NUM_SAMPLES; i++ {
 		if err := writeSampleHead(w, m.Samples[i]); err != nil {
 			return err
 		}
 	}
 
-	// TODO check range [1,128]
 	if err := writeByte(w, m.Len); err != nil {
 		return err
 	}
-	// TODO check =127
 	if err := writeByte(w, 127); err != nil {
 		return err
 	}
 
-	// TODO check values [0,63]
 	if err := writeBytes(w, m.Sequence); err != nil {
 		return err
 	}
@@ -178,7 +177,6 @@ func readSampleHead(r io.Reader) (Sample, error) {
 	if err != nil {
 		return sample, err
 	}
-	// TODO check 0<=vol<=64
 	sample.Volume = vol
 
 	rstart, err := readWyde(r)
@@ -305,6 +303,24 @@ func writeBytes(w io.Writer, p []byte) error {
 	}
 	if n != len(p) {
 		return errors.New("bad write")
+	}
+	return nil
+}
+
+func (m *Mod) validate() error {
+	err := errors.New("invalid mod")
+	if m.Len < 1 || m.Len > 128 {
+		return err
+	}
+	for _, v := range m.Sequence {
+		if v < 0 || v > 63 {
+			return err
+		}
+	}
+	for _, sample := range m.Samples {
+		if sample.Volume > 64 {
+			return err
+		}
 	}
 	return nil
 }
