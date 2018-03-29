@@ -170,7 +170,8 @@ func readSampleHead(r io.Reader) (Sample, error) {
 	if err != nil {
 		return sample, err
 	}
-	sample.Len = len * 2
+	//sample.Len = len * 2
+	sample.Len = len
 
 	tune, err := readNibble(r)
 	if err != nil {
@@ -188,13 +189,15 @@ func readSampleHead(r io.Reader) (Sample, error) {
 	if err != nil {
 		return sample, err
 	}
-	sample.RepeatStart = rstart * 2
+	//sample.RepeatStart = rstart * 2
+	sample.RepeatStart = rstart
 
 	rlen, err := readWyde(r)
 	if err != nil {
 		return sample, err
 	}
-	sample.RepeatLen = rlen * 2
+	//sample.RepeatLen = rlen * 2
+	sample.RepeatLen = rlen
 
 	return sample, nil
 }
@@ -203,7 +206,8 @@ func writeSampleHead(w io.Writer, s Sample) error {
 	if err := writeName(w, s.Name, LEN_SAMPLE_NAME); err != nil {
 		return err
 	}
-	if err := writeWyde(w, s.Len/2); err != nil {
+	//if err := writeWyde(w, s.Len/2); err != nil {
+	if err := writeWyde(w, s.Len); err != nil {
 		return err
 	}
 	if err := writeNibble(w, s.Tune); err != nil {
@@ -212,10 +216,12 @@ func writeSampleHead(w io.Writer, s Sample) error {
 	if err := writeByte(w, s.Volume); err != nil {
 		return err
 	}
-	if err := writeWyde(w, s.RepeatStart/2); err != nil {
+	//if err := writeWyde(w, s.RepeatStart/2); err != nil {
+	if err := writeWyde(w, s.RepeatStart); err != nil {
 		return err
 	}
-	if err := writeWyde(w, s.RepeatLen/2); err != nil {
+	//if err := writeWyde(w, s.RepeatLen/2); err != nil {
+	if err := writeWyde(w, s.RepeatLen); err != nil {
 		return err
 	}
 	return nil
@@ -343,19 +349,34 @@ func writeNote(n Note) []byte {
 }
 
 func (m *Mod) validate() error {
-	err := errors.New("invalid mod")
+	if len(m.Name) > LEN_NAME {
+		return errors.New("invalid mod: name")
+	}
+	if len(m.Samples) != NUM_SAMPLES {
+		return errors.New("invalid mod: num samples")
+	}
+	for _, s := range m.Samples {
+		if len(s.Name) > LEN_SAMPLE_NAME {
+			return errors.New("invalid mod: sample name")
+		}
+		if s.Tune&0x0F != s.Tune {
+			return errors.New("invalid mod: sample tune")
+		}
+		if s.Volume > 64 {
+			return errors.New("invalid mod: sample volume")
+		}
+	}
 	if m.Len < 1 || m.Len > 128 {
-		return err
+		return errors.New("invalid mod: len")
+	}
+	if len(m.Sequence) != 128 {
+		return errors.New("invalid mod: sequence len")
 	}
 	for _, v := range m.Sequence {
 		if v < 0 || v > 63 {
-			return err
+			return errors.New("invalid mod: seq pattern")
 		}
 	}
-	for _, sample := range m.Samples {
-		if sample.Volume > 64 {
-			return err
-		}
-	}
+
 	return nil
 }

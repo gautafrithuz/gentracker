@@ -30,7 +30,7 @@ func TestRead(t *testing.T) {
 	if string(m.Samples[8].Name) != "TECH-CRASH" {
 		t.Errorf("Sample Name: %s", m.Samples[8].Name)
 	}
-	if m.Samples[8].Len != 15458 {
+	if m.Samples[8].Len != 15458/2 {
 		t.Errorf("Sample Len: %d", m.Samples[8].Len)
 	}
 	if m.Samples[8].Tune != 0 {
@@ -39,10 +39,10 @@ func TestRead(t *testing.T) {
 	if m.Samples[8].Volume != 48 {
 		t.Errorf("Sample Volume: %d!=%d", m.Samples[8].Volume)
 	}
-	if m.Samples[8].RepeatStart != 13534 {
+	if m.Samples[8].RepeatStart != 13534/2 {
 		t.Errorf("Sample Repeat Start: %d", m.Samples[8].RepeatStart)
 	}
-	if m.Samples[8].RepeatLen != 1924 {
+	if m.Samples[8].RepeatLen != 1924/2 {
 		t.Errorf("Sample Repeat Start: %d", m.Samples[8].RepeatLen)
 	}
 	lens := []uint16{52176, 25764, 27884, 40070, 24560, 30800, 256, 20722, 15458, 18724, 17640, 9014, 8820, 18724, 30646}
@@ -50,7 +50,7 @@ func TestRead(t *testing.T) {
 		lens = append(lens, 0)
 	}
 	for i := 0; i < NUM_SAMPLES; i++ {
-		if m.Samples[i].Len != lens[i] {
+		if m.Samples[i].Len != lens[i]/2 {
 			t.Errorf("Sample Len %d: %d", i, m.Samples[i].Len)
 		}
 	}
